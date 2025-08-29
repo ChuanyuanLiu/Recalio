@@ -162,7 +162,7 @@ export default function VoiceAgent() {
   const canStop = status === "connected";
 
   return (
-    <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div data-component="voice-agent" className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <header className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <StatusPill status={status} />

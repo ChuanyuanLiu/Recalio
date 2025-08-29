@@ -59,7 +59,7 @@ function groupSessionsByDate(sessions: ConsultSession[]): GroupedSessions {
   return grouped;
 }
 
-function SessionItem({ session }: { session: ConsultSession }) {
+function SessionItem({ session, scrollContainerId }: { session: ConsultSession; scrollContainerId: string }) {
   const { setCurrentSession, currentSession } = useConsultStore()
   const isActive = currentSession?.session.session_id === session.session.session_id
 
@@ -71,6 +71,22 @@ function SessionItem({ session }: { session: ConsultSession }) {
       )}
       onClick={() => {
         setCurrentSession(session.session.session_id)
+        // Scroll to VoiceAgent after a brief delay to allow state update
+        setTimeout(() => {
+          const voiceAgentElement = document.querySelector('[data-component="voice-agent"]');
+          const scrollContainer = document.getElementById(scrollContainerId);
+          if (voiceAgentElement && scrollContainer) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const elementRect = voiceAgentElement.getBoundingClientRect();
+            const scrollTop = scrollContainer.scrollTop;
+            const targetScrollTop = scrollTop + elementRect.top - containerRect.top - 20; // 20px offset from top
+
+            scrollContainer.scrollTo({
+              top: targetScrollTop,
+              behavior: 'smooth'
+            });
+          }
+        }, 100);
       }}
     >
       <div className="text-2xl font-normal text-gray-900 mb-1">
@@ -85,9 +101,10 @@ function SessionItem({ session }: { session: ConsultSession }) {
 
 interface CalendarProps {
   sessions: ConsultSession[];
+  scrollContainerId: string;
 }
 
-export default function Calendar({ sessions }: CalendarProps) {
+export default function Calendar({ sessions, scrollContainerId }: CalendarProps) {
   const groupedSessions = useMemo(() => groupSessionsByDate(sessions), [sessions]);
 
   if (sessions.length === 0) {
@@ -122,7 +139,7 @@ export default function Calendar({ sessions }: CalendarProps) {
                         <h5 className="text-3xl font-light text-gray-900 mb-6">{dayLabel}</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {sessions.map(session =>
-                            <SessionItem key={session.session.session_id} session={session} />
+                            <SessionItem key={session.session.session_id} session={session} scrollContainerId={scrollContainerId} />
                           )}
                         </div>
                       </div>
