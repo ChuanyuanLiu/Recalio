@@ -21,7 +21,7 @@ export default function VoiceAgent() {
     },
     onError: (error) => {
       console.error('Conversation error:', error);
-      setError('Failed to connect to voice agent. Please try again.');
+      setError(`Failed to connect to voice agent`);
     },
   });
 
@@ -42,28 +42,36 @@ export default function VoiceAgent() {
     try {
       setError(null);
 
+      // Check if agent ID is configured
+      const agentId = process.env.NEXT_PUBLIC_ELEVEN_LABS_AGENT_ID;
+      console.log('agentId', agentId);
+      if (!agentId || agentId === 'your_agent_id_here') {
+        setError('Please configure NEXT_PUBLIC_ELEVEN_LABS_AGENT_ID in your .env.local file');
+        return;
+      }
+
       // Check microphone permission first
       if (!isPermissionGranted) {
         const granted = await requestMicrophonePermission();
         if (!granted) return;
       }
 
-      // Check if we have an agent ID in environment variables
-      const agentId = process.env.NEXT_PUBLIC_ELEVEN_LABS_AGENT_ID;
-
-      if (!agentId) {
-        throw new Error('Agent ID not configured');
-      }
-
-      // Use direct agent ID for public agents
+      // Start the conversation
       await conversation.startSession({
         agentId: agentId,
         connectionType: 'websocket',
+        dynamicVariables: {
+          full_name: 'Max Lee',
+          date_of_birth: '01/01/2000',
+          home_address: '746 Swanston Street',
+          patient_query: '-',
+          transcript: '-'
+        }
       });
 
     } catch (error) {
       console.error('Failed to start conversation:', error);
-      setError('Failed to start voice conversation. Please check your agent setup and API key.');
+      setError(`Failed to start voice conversation: ${error instanceof Error ? error.message : error}`);
     }
   }, [conversation, isPermissionGranted, requestMicrophonePermission]);
 
@@ -97,11 +105,6 @@ export default function VoiceAgent() {
 
   return (
     <div className="bg-white rounded-lg border shadow-sm p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Icon icon="material-symbols:record-voice-over" className="text-blue-500 text-xl" />
-        <h3 className="font-semibold text-gray-800">Voice Conversation Agent</h3>
-      </div>
-
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
           <div className="flex items-center gap-2">
@@ -177,21 +180,6 @@ export default function VoiceAgent() {
           >
             <Icon icon="material-symbols:stop" />
           </button>
-        </div>
-
-        {/* Instructions */}
-        <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-          <div className="flex items-start gap-2">
-            <Icon icon="material-symbols:info" className="text-blue-500 mt-0.5" />
-            <div>
-              <p className="font-medium text-blue-800">How to use:</p>
-              <ul className="mt-1 space-y-1 text-blue-700">
-                <li>• Click "Start Conversation" to begin</li>
-                <li>• Speak naturally - the agent will listen and respond</li>
-                <li>• Click the stop button to end the conversation</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
     </div>

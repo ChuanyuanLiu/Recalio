@@ -13,11 +13,11 @@ export default function Home() {
   }, [getSessions])
 
   return (
-    <div className="h-screen w-screen flex justify-center overflow-hidden">
-      <div className="h-full w-full max-w-[800px] px-2 py-2 flex flex-col gap-4">
+    <div className="h-screen w-screen flex justify-center overflow-x-hidden">
+      <div className="h-full w-full max-w-[800px] p-4 flex flex-col gap-4">
 
         <div className="">
-          Welcome back <span>Chuanyuan Liu</span>
+          Welcome back <span>Max Lee</span>
         </div>
         <div>
           <VoiceAgent />
@@ -26,6 +26,7 @@ export default function Home() {
           <h2 className="font-medium mb-2">Recent Consults</h2>
           <Calendar sessions={sessions} />
         </div>
+        <div className="h-[100px] shrink-0" />
       </div>
     </div>
   );
