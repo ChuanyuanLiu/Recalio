@@ -31,6 +31,9 @@
       "correctness": {
         "noUnusedImports": "off"
       },
+      "performance": {
+        "noImgElement": "off"
+      },
       "complexity": {
         "noForEach": "off",
         "noBannedTypes": "off",

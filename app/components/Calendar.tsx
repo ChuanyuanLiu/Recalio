@@ -66,17 +66,17 @@ function SessionItem({ session }: { session: ConsultSession }) {
   return (
     <div
       className={cn(
-        "btn w-[200px]",
-        isActive ? "btn-active" : ""
+        "bg-gray-50 border border-gray-200 rounded-xl p-6 cursor-pointer hover:bg-blue-100 transition-colors flex-1 min-w-0",
+        isActive && "bg-blue-50 border-blue-200"
       )}
       onClick={() => {
         setCurrentSession(session.session.session_id)
       }}
     >
-      <div>
+      <div className="text-2xl font-normal text-gray-900 mb-1">
         {formatTimeOnly(session.session.created_at)}
       </div>
-      <div>
+      <div className="text-lg text-gray-600">
         {Math.round(session.session.duration / 60)} minutes
       </div>
     </div>
@@ -103,13 +103,13 @@ export default function Calendar({ sessions }: CalendarProps) {
       {Object.keys(groupedSessions).map(year => {
         const months = Object.keys(groupedSessions[year]);
         return (
-          <div key={year} className="">
-            <h3 className="font-medium text-gray-500 mb-2">{year}</h3>
+          <div key={year} className="mb-8">
+            <h3 className="text-6xl font-light text-gray-900 mb-6">{year}</h3>
             {months.map(month => {
               const days = Object.keys(groupedSessions[year][month]);
               return (
-                <div key={month} className="">
-                  <h4 className="font-medium text-gray-500 mb-2">{month}</h4>
+                <div key={month} className="mb-8">
+                  <h4 className="text-4xl font-light text-gray-700 mb-6">{month}</h4>
                   {days.map(day => {
                     const sessions = groupedSessions[year][month][day];
                     const dayLabel = new Date(sessions[0].session.created_at).toLocaleDateString('en-US', {
@@ -118,9 +118,9 @@ export default function Calendar({ sessions }: CalendarProps) {
                     });
 
                     return (
-                      <div key={day} className="">
-                        <h5 className="font-medium mb-2">{dayLabel}</h5>
-                        <div className="flex flex-row flex-wrap gap-2">
+                      <div key={day} className="mb-8">
+                        <h5 className="text-3xl font-light text-gray-900 mb-6">{dayLabel}</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {sessions.map(session =>
                             <SessionItem key={session.session.session_id} session={session} />
                           )}
