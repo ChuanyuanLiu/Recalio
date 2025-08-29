@@ -21,13 +21,13 @@ export default function Home() {
         <div className="max-w-[800px] p-4 flex flex-col gap-4">
           <img src="/friendly_health_clinic.png" alt="Family Health Clinic" className="max-w-[200px] mx-auto" />
           <div>
-            <VoiceAgent />
-          </div>
-          <div className="pt-8">
             Welcome back <span className="font-medium">Max Lee</span>, here are recent consultations provided by <span className="font-medium">Friendly Health Clinic</span>.
           </div>
           <div className="pt-8">
             <Calendar sessions={sessions} />
+          </div>
+          <div>
+            <VoiceAgent />
           </div>
           <div className="h-[100px] shrink-0" />
         </div>
