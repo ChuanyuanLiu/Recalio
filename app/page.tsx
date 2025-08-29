@@ -14,16 +14,14 @@ export default function Home() {
 
   return (
     <div className="h-screen w-screen flex justify-center overflow-hidden">
-      <div className="h-[calc(100vh-150px)] w-full max-w-[800px] px-2 py-2 mt-[150px]">
-        <div className="mb-6">
-          <div className="text-2xl font-semibold">
-            Welcome back <span>Chuanyuan Liu</span>
-          </div>
+      <div className="h-[calc(100vh-150px)] w-full max-w-[800px] px-2 py-2 mt-[150px] flex flex-col gap-4">
+        <div className="">
+          Welcome back <span>Chuanyuan Liu</span>
         </div>
-        <div className="mb-4">
-          <h2 className="text-xl font-medium">Recent Consults</h2>
+        <div>
+          <h2 className="font-medium mb-2">Recent Consults</h2>
+          <Calendar sessions={sessions} />
         </div>
-        <Calendar sessions={sessions} />
       </div>
     </div>
   );

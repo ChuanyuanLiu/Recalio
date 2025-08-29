@@ -66,8 +66,8 @@ function SessionItem({ session }: { session: ConsultSession }) {
   return (
     <div
       className={cn(
-        "flex justify-between py-2 px-4 rounded-lg mb-2 hover:cursor-pointer transition-colors",
-        isActive ? "bg-blue-100 border border-blue-200" : "bg-gray-50 hover:bg-gray-100"
+        "btn w-[200px]",
+        isActive ? "btn-active" : ""
       )}
       onClick={() => {
         setCurrentSession(session.session.session_id)
@@ -103,13 +103,13 @@ export default function Calendar({ sessions }: CalendarProps) {
       {Object.keys(groupedSessions).map(year => {
         const months = Object.keys(groupedSessions[year]);
         return (
-          <div key={year} className="mb-8">
-            <h3 className="text-lg font-medium text-gray-800 mb-4">{year}</h3>
+          <div key={year} className="">
+            <h3 className="font-medium text-gray-500 mb-2">{year}</h3>
             {months.map(month => {
               const days = Object.keys(groupedSessions[year][month]);
               return (
-                <div key={month} className="mb-6">
-                  <h4 className="text-md font-medium text-gray-700 mb-3">{month}</h4>
+                <div key={month} className="">
+                  <h4 className="font-medium text-gray-500 mb-2">{month}</h4>
                   {days.map(day => {
                     const sessions = groupedSessions[year][month][day];
                     const dayLabel = new Date(sessions[0].session.created_at).toLocaleDateString('en-US', {
@@ -118,9 +118,9 @@ export default function Calendar({ sessions }: CalendarProps) {
                     });
 
                     return (
-                      <div key={day} className="mb-4">
-                        <h5 className="text-sm font-medium text-gray-600 mb-2">{dayLabel}</h5>
-                        <div className="ml-2">
+                      <div key={day} className="">
+                        <h5 className="font-medium mb-2">{dayLabel}</h5>
+                        <div className="flex flex-row flex-wrap gap-2">
                           {sessions.map(session =>
                             <SessionItem key={session.session.session_id} session={session} />
                           )}
