@@ -58,8 +58,14 @@ export const useConsultStore = create<ConsultSessionStore>()(
       }
       const responses = await Promise.all(requests)
       const data = await Promise.all(responses.map(async x => await x.json() as ConsultSession))
-      set({ sessions: data })
-      return data
+
+      // Sort sessions by created_at timestamp (most recent first)
+      const sortedData = data.sort((a, b) =>
+        new Date(b.session.created_at).getTime() - new Date(a.session.created_at).getTime()
+      )
+
+      set({ sessions: sortedData })
+      return sortedData
     },
   })
 );

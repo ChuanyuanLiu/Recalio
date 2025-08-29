@@ -1,19 +1,8 @@
 "use client"
 
 import { useConsultStore } from "./store";
-import type { ConsultSession } from "./schema";
 import { useEffect } from "react";
-
-function Consult({ session }: { session: ConsultSession }) {
-  return <div>
-    <div>
-      {session.session.created_at}
-    </div>
-    <div>
-      {session.session.duration}
-    </div>
-  </div>
-}
+import Calendar from "./components/Calendar";
 
 
 export default function Home() {
@@ -24,17 +13,17 @@ export default function Home() {
   }, [getSessions])
 
   return (
-    <div className="h-screen w-screen flex justify-center">
-      <div className="h-full w-full max-w-[800px] px-2 py-2 mt-[150px]">
-        <div>
-          <div>
+    <div className="h-screen w-screen flex justify-center overflow-hidden">
+      <div className="h-[calc(100vh-150px)] w-full max-w-[800px] px-2 py-2 mt-[150px]">
+        <div className="mb-6">
+          <div className="text-2xl font-semibold">
             Welcome back <span>Chuanyuan Liu</span>
           </div>
         </div>
-        <div>
-          Recent Consults
+        <div className="mb-4">
+          <h2 className="text-xl font-medium">Recent Consults</h2>
         </div>
-        {sessions.map(x => <Consult key={x.session.session_id} session={x} />)}
+        <Calendar sessions={sessions} />
       </div>
     </div>
   );
