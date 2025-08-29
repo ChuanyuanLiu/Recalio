@@ -66,7 +66,7 @@ function SessionItem({ session, scrollContainerId }: { session: ConsultSession; 
   return (
     <div
       className={cn(
-        "bg-gray-50 border border-gray-200 rounded-xl p-6 cursor-pointer hover:bg-blue-100 transition-colors flex-1 min-w-0",
+        "bg-gray-50 border border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-blue-100 transition-colors flex-1 min-w-0",
         isActive && "bg-blue-50 border-blue-200"
       )}
       onClick={() => {
@@ -89,7 +89,7 @@ function SessionItem({ session, scrollContainerId }: { session: ConsultSession; 
         }, 100);
       }}
     >
-      <div className="text-2xl font-normal text-gray-900 mb-1">
+      <div className="text-xl font-normal text-gray-900 mb-1">
         {formatTimeOnly(session.session.created_at)}
       </div>
       <div className="text-lg text-gray-600">
@@ -137,7 +137,7 @@ export default function Calendar({ sessions, scrollContainerId }: CalendarProps)
                     return (
                       <div key={day} className="mb-8">
                         <h5 className="text-3xl font-light text-gray-900 mb-6">{dayLabel}</h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                           {sessions.map(session =>
                             <SessionItem key={session.session.session_id} session={session} scrollContainerId={scrollContainerId} />
                           )}

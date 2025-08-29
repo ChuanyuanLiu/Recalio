@@ -27,14 +27,26 @@ type Status = "disconnected" | "connecting" | "connected" | "error";
 
 type Permission = "prompt" | "granted" | "denied";
 
+interface MicrophoneDevice {
+  deviceId: string;
+  label: string;
+}
+
 export default function VoiceAgent() {
   // State management
   const [permission, setPermission] = useState<Permission>("prompt");
-  const [selectedDevice, setSelectedDevice] = useState("Default Microphone");
+  const [selectedDevice, setSelectedDevice] = useState("");
+  const [availableDevices, setAvailableDevices] = useState<MicrophoneDevice[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [showLogs, setShowLogs] = useState(false);
   const [level, setLevel] = useState(0); // VU meter level (0..1)
   const [error, setError] = useState<string | null>(null);
+
+  // Audio monitoring refs
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const microphoneStreamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   // ElevenLabs conversation hook
   const conversation = useConversation({
@@ -69,26 +81,154 @@ export default function VoiceAgent() {
     }
   }, [conversation.status, error]);
 
-  // Animate VU meter when connected and speaking
-  useEffect(() => {
-    let id: NodeJS.Timeout | undefined;
-    if (status === "connected" && conversation.isSpeaking) {
-      // Simulate audio input level when agent is speaking
-      id = setInterval(() => setLevel(Math.random() * 0.8 + 0.2), 100);
-    } else if (status === "connected") {
-      // Show baseline activity when listening
-      id = setInterval(() => setLevel(Math.random() * 0.3), 200);
-    } else {
-      setLevel(0);
-    }
-    return () => {
-      if (id) clearInterval(id);
-    };
-  }, [status, conversation.isSpeaking]);
-
   // Utility functions
   const timestamp = useCallback(() => new Date().toLocaleTimeString(), []);
   const pushLog = useCallback((line: string) => setLogs((l) => [timestamp(), line, ...l]), [timestamp]);
+
+  // Audio monitoring functions
+  const startAudioMonitoring = useCallback(async () => {
+    try {
+      // Get user media stream with selected device
+      const constraints: MediaStreamConstraints = {
+        audio: selectedDevice
+          ? { deviceId: { exact: selectedDevice } }
+          : true
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      microphoneStreamRef.current = stream;
+
+      // Create audio context and analyser  
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      audioContextRef.current = audioContext;
+
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.8;
+      analyserRef.current = analyser;
+
+      // Connect microphone to analyser
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      pushLog('Audio monitoring started');
+
+      // Start analyzing audio levels
+      const analyzeAudio = () => {
+        if (!analyserRef.current) return;
+
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        // Calculate RMS (Root Mean Square) for audio level
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i] * dataArray[i];
+        }
+        const rms = Math.sqrt(sum / bufferLength);
+        const normalizedLevel = Math.min(rms / 128, 1); // Normalize to 0-1 range
+
+        setLevel(normalizedLevel);
+        animationFrameRef.current = requestAnimationFrame(analyzeAudio);
+      };
+
+      analyzeAudio();
+    } catch (error) {
+      console.error('Failed to start audio monitoring:', error);
+      pushLog(`Failed to start audio monitoring: ${error}`);
+    }
+  }, [selectedDevice, pushLog]);
+
+  const stopAudioMonitoring = useCallback(() => {
+    // Stop animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Close audio context
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    // Stop microphone stream
+    if (microphoneStreamRef.current) {
+      microphoneStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
+      microphoneStreamRef.current = null;
+    }
+
+    analyserRef.current = null;
+    setLevel(0);
+    pushLog('Audio monitoring stopped');
+  }, [pushLog]);
+
+  // Start/stop audio monitoring based on connection status
+  useEffect(() => {
+    if (status === "connected") {
+      startAudioMonitoring();
+    } else {
+      stopAudioMonitoring();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      stopAudioMonitoring();
+    };
+  }, [status, startAudioMonitoring, stopAudioMonitoring]);
+
+  // Enumerate available microphone devices
+  const enumerateDevices = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices
+        .filter(device => device.kind === 'audioinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Microphone ${device.deviceId.slice(0, 8)}...`
+        }));
+
+      setAvailableDevices(audioInputs);
+
+      // Set default device if none selected
+      if (!selectedDevice && audioInputs.length > 0) {
+        setSelectedDevice(audioInputs[0].deviceId);
+      }
+
+      pushLog(`Found ${audioInputs.length} audio input devices`);
+      return audioInputs;
+    } catch (error) {
+      console.error('Failed to enumerate devices:', error);
+      pushLog(`Failed to enumerate devices: ${error}`);
+      setError('Failed to access audio devices. Please check browser permissions.');
+      return [];
+    }
+  }, [selectedDevice, pushLog]);
+
+  // Update device list when permissions change
+  useEffect(() => {
+    if (permission === "granted") {
+      enumerateDevices();
+    }
+  }, [permission, enumerateDevices]);
+
+  // Listen for device changes (plugged/unplugged)
+  useEffect(() => {
+    if (permission === "granted") {
+      const handleDeviceChange = () => {
+        enumerateDevices();
+      };
+
+      navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+
+      return () => {
+        navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      };
+    }
+  }, [permission, enumerateDevices]);
 
   // --- Action Handlers ---
   const onGrantPermission = useCallback(async () => {
@@ -97,13 +237,15 @@ export default function VoiceAgent() {
       setPermission("granted");
       setError(null);
       pushLog("Microphone permission granted");
+      // Enumerate devices after permission is granted
+      await enumerateDevices();
     } catch (error) {
       console.error('Microphone permission denied:', error);
       setPermission("denied");
       setError('Microphone permission is required for voice conversations.');
       pushLog("Microphone permission denied");
     }
-  }, [pushLog]);
+  }, [pushLog, enumerateDevices]);
 
   const onStart = useCallback(async () => {
     if (permission !== "granted") return;
@@ -118,6 +260,25 @@ export default function VoiceAgent() {
         setError('Please configure NEXT_PUBLIC_ELEVEN_LABS_AGENT_ID in your .env.local file');
         pushLog("Error: Agent ID not configured");
         return;
+      }
+
+      // If a specific device is selected, test access to it before starting
+      if (selectedDevice) {
+        try {
+          const testStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: selectedDevice } }
+          });
+          // Close the test stream immediately
+          testStream.getTracks().forEach(track => {
+            track.stop();
+          });
+          pushLog(`Successfully accessed selected microphone device`);
+        } catch (error) {
+          console.error('Selected microphone device not accessible:', error);
+          pushLog(`Warning: Selected microphone may not be accessible`);
+          setError('Selected microphone device is not accessible. Please select a different device.');
+          return;
+        }
       }
 
       // Start the ElevenLabs conversation
@@ -139,11 +300,12 @@ export default function VoiceAgent() {
       setError(`Failed to start voice conversation: ${error instanceof Error ? error.message : error}`);
       pushLog(`Failed to start conversation: ${error}`);
     }
-  }, [conversation, permission, pushLog]);
+  }, [conversation, permission, pushLog, selectedDevice]);
 
   const onStop = useCallback(async () => {
     try {
       await conversation.endSession();
+      stopAudioMonitoring();
       setError(null);
       pushLog("Conversation stopped");
     } catch (error) {
@@ -151,11 +313,22 @@ export default function VoiceAgent() {
       setError('Failed to stop conversation properly.');
       pushLog(`Failed to stop conversation: ${error}`);
     }
-  }, [conversation, pushLog]);
+  }, [conversation, pushLog, stopAudioMonitoring]);
 
-  const onDeviceChange = (d: string) => {
-    setSelectedDevice(d);
-    pushLog(`Switched mic to: ${d}`);
+  const onDeviceChange = (deviceId: string) => {
+    setSelectedDevice(deviceId);
+    const device = availableDevices.find(d => d.deviceId === deviceId);
+    const deviceLabel = device?.label || deviceId;
+    pushLog(`Switched mic to: ${deviceLabel}`);
+
+    // Restart audio monitoring with new device if currently connected
+    if (status === "connected") {
+      stopAudioMonitoring();
+      // Small delay to ensure cleanup is complete before restarting
+      setTimeout(() => {
+        startAudioMonitoring();
+      }, 100);
+    }
   };
 
   const canStart = permission === "granted" && (status === "disconnected" || status === "error");
@@ -201,17 +374,30 @@ export default function VoiceAgent() {
       {permission === "granted" && <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="col-span-2 flex items-center gap-2 rounded-xl border border-slate-200 p-2">
           <DeviceIcon className="h-5 w-5 text-slate-500" />
-          <select
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-            value={selectedDevice}
-            onChange={(e) => onDeviceChange(e.target.value)}
-            disabled={permission !== "granted"}
-            aria-label="Select microphone"
-          >
-            <option>Default Microphone</option>
-            <option>USB Mic (UAC)</option>
-            <option>MacBook Microphone</option>
-          </select>
+          <div className="flex-1">
+            <select
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              value={selectedDevice}
+              onChange={(e) => onDeviceChange(e.target.value)}
+              disabled={permission !== "granted"}
+              aria-label="Select microphone"
+            >
+              {availableDevices.length === 0 ? (
+                <option value="">No microphones available</option>
+              ) : (
+                availableDevices.map((device) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label}
+                  </option>
+                ))
+              )}
+            </select>
+            {selectedDevice && (
+              <div className="mt-1 text-xs text-slate-500">
+                Active: {availableDevices.find(d => d.deviceId === selectedDevice)?.label || 'Unknown device'}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-end gap-2">
