@@ -9,3 +9,5 @@ export const SESSION_IDS = [
 export const HEIDI_AUTH_API = "https://registrar.api.heidihealth.com/api/v2/ml-scribe/open-api/jwt?email=test@heidihealth.com&third_party_internal_id=123"
 
 export const HEIDI_SESSION_API = "https://registrar.api.heidihealth.com/api/v2/ml-scribe/open-api/sessions"
+
+export const PATIENT_ID = "b1e10302-9bb3-4a9c-95bb-3334e5b64ec0"
