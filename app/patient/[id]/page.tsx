@@ -1,9 +1,9 @@
 "use client"
 
-import { useConsultStore } from "./store";
+import { useConsultStore } from "../../store";
 import { useEffect } from "react";
-import Calendar from "./components/Calendar";
-import VoiceAgent from "./components/VoiceAgent";
+import Calendar from "../../components/Calendar";
+import VoiceAgent from "../../components/VoiceAgent";
 
 export default function Home() {
   const { getSessions, sessions } = useConsultStore()
@@ -14,7 +14,7 @@ export default function Home() {
 
   return (
     <div className="h-screen w-screen flex justify-center overflow-hidden flex-col items-center">
-      <div className="bg-slate-100 flex w-full items-center justify-center shadow z-50">
+      <div className="bg-slate-100 flex w-full items-center shadow z-50 px-4">
         <div className="text-lg font-semibold text-[#6a9c9a]">Recalio Voice Assistant</div>
       </div>
       <div className="flex-1 overflow-y-auto w-full flex justify-center">
